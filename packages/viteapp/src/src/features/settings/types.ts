@@ -15,6 +15,13 @@ export type PestEntity = {
   updatedAt: TimeStamp;
 };
 
+export type CropEntity = {
+  id: EntityId;
+  name: string;
+  createdAt: TimeStamp;
+  updatedAt: TimeStamp;
+};
+
 export type UserPermissionValue = (typeof USER_PERMISSIONS)[number]["value"];
 
 export type UserRoleEntity = {

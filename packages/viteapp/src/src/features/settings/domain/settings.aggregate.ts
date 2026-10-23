@@ -3,12 +3,18 @@ import { getTimestampNow } from "../../../packages/foundation/src/infrastructure
 import { deepClone } from "../../../packages/foundation/src/infrastructure/core/utilities/helpers";
 import { EntityId } from "../../../packages/foundation/src/types";
 import { USER_PERMISSIONS } from "../const";
-import { PestCategoryEntity, PestEntity, UserRoleEntity } from "../types";
+import {
+  CropEntity,
+  PestCategoryEntity,
+  PestEntity,
+  UserRoleEntity,
+} from "../types";
 
 export default class SettingsAggregate {
   private id: EntityId;
   private pestCategories: Array<PestCategoryEntity>;
   private pests: Array<PestEntity>;
+  private crops: Array<CropEntity>;
   private userRoles: Array<UserRoleEntity>;
   private version: number;
   private hasBumpedVersion: boolean = false;
@@ -17,6 +23,7 @@ export default class SettingsAggregate {
     id: EntityId;
     pestCategories: Array<PestCategoryEntity>;
     pests: Array<PestEntity>;
+    crops: Array<CropEntity>;
     userRoles: Array<UserRoleEntity>;
     version: number;
     hasBumpedVersion: boolean;
@@ -24,6 +31,7 @@ export default class SettingsAggregate {
     this.id = p.id;
     this.pestCategories = p.pestCategories;
     this.pests = p.pests;
+    this.crops = p.crops;
     this.userRoles = p.userRoles;
     this.version = p.version;
     this.hasBumpedVersion = p.hasBumpedVersion;
@@ -49,8 +57,17 @@ export default class SettingsAggregate {
     this.pests.push(pest);
   }
 
+  addCrop(crop: CropEntity): void {
+    this.crops.push(crop);
+    this.bumpVersion();
+  }
+
   getUserRoles(): Array<UserRoleEntity> {
     return deepClone(this.userRoles);
+  }
+
+  getCrops(): Array<CropEntity> {
+    return deepClone(this.crops);
   }
 
   getVersion(): number {
@@ -60,6 +77,7 @@ export default class SettingsAggregate {
   static create(p: {
     pestCategories: Array<PestCategoryEntity>;
     pests: Array<PestEntity>;
+    crops: Array<CropEntity>;
   }): SettingsAggregate {
     const settingsId = createEntityId();
     const basicUserRole: UserRoleEntity = {
@@ -86,6 +104,7 @@ export default class SettingsAggregate {
       id: settingsId,
       pestCategories: p.pestCategories,
       pests: p.pests,
+      crops: p.crops,
       userRoles: [basicUserRole, adminUserRole],
       version: 1,
       hasBumpedVersion: false,
@@ -97,12 +116,14 @@ export default class SettingsAggregate {
     pestCategories: Array<PestCategoryEntity>;
     pests: Array<PestEntity>;
     userRoles: Array<UserRoleEntity>;
+    crops: Array<CropEntity>;
     version: number;
   }): SettingsAggregate {
     return new SettingsAggregate({
       id: p.id,
       pestCategories: p.pestCategories,
       pests: p.pests,
+      crops: p.crops,
       userRoles: p.userRoles,
       version: p.version,
       hasBumpedVersion: false,
@@ -148,6 +169,24 @@ export default class SettingsAggregate {
 
   createPest(pest: PestEntity): void {
     this.pests.push(pest);
+    this.bumpVersion();
+  }
+
+  createCrop(crop: CropEntity): void {
+    this.crops.push(crop);
+    this.bumpVersion();
+  }
+
+  removeCrop(crop: CropEntity): void {
+    this.crops = this.crops.filter((c) => c.id !== crop.id);
+    this.bumpVersion();
+  }
+
+  updateCrop(crop: CropEntity): void {
+    const index = this.crops.findIndex((c) => c.id === crop.id);
+    if (index !== -1) {
+      this.crops[index] = crop;
+    }
     this.bumpVersion();
   }
 
