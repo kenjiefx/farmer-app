@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bug/Insect Tracker Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg-primary: #121214;
+        --bg-surface: #1a1a1e;
+        --bg-panel: #26262b;
+        --text-main: #f3f4f6;
+        --text-muted: #9ca3af;
+        --accent-success: #10b981;
+        --accent-alert: #f59e0b;
+        --border-color: #3f3f46;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: var(--bg-primary);
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        background-color: var(--bg-surface);
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+      }
+
+      .dashboard-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+        flex: 1;
+      }
+
+      @media (min-width: 768px) {
+        .dashboard-container {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .panel {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      .panel-title {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-bottom: 16px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Feed Section */
+      .feed-wrapper {
+        position: relative;
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        aspect-ratio: 4 / 3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .status-badge {
+        margin-top: 16px;
+        padding: 10px 14px;
+        background-color: var(--bg-panel);
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 0.95rem;
+        color: var(--accent-success);
+        border-left: 4px solid var(--accent-success);
+      }
+
+      /* Logs Section */
+      .logs-container {
+        flex: 1;
+        background-color: #0b0b0c;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 0.9rem;
+        overflow-y: auto;
+        max-height: 350px;
+        min-height: 250px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      @media (min-width: 768px) {
+        .logs-container {
+          max-height: calc(100% - 40px);
+        }
+      }
+
+      .log-entry {
+        animation: fadeIn 0.2s ease-out;
+        line-height: 1.4;
+        word-break: break-all;
+      }
+
+      .log-entry .timestamp {
+        color: var(--text-muted);
+        margin-right: 8px;
+      }
+
+      .log-entry.bug {
+        color: var(--accent-alert);
+        font-weight: bold;
+      }
+
+      .log-entry.system {
+        color: #60a5fa;
+      }
+
+      .empty-log {
+        color: #4b5563;
+        font-style: italic;
+        text-align: center;
+        margin: auto;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(2px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h2>Bug/Insect Tracker Control Center</h2>
+    </header>
+
+    <main class="dashboard-container">
+      <section class="panel">
+        <h3 class="panel-title">
+          <span
+            style="
+              display: inline-block;
+              width: 8px;
+              height: 8px;
+              background: var(--accent-success);
+              border-radius: 50%;
+            "
+          ></span>
+          Live Video Stream
+        </h3>
+        <div class="feed-wrapper">
+          <video id="video" autoplay playsinline></video>
+        </div>
+        <div class="status-badge" id="system-status">
+          System Initializing...
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3 class="panel-title">Detection & Activity History</h3>
+        <div class="logs-container" id="logs-box">
+          <div class="empty-log" id="empty-message">
+            No activities logged yet.
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      const statusBadge = document.getElementById("system-status");
+      const logsBox = document.getElementById("logs-box");
+      const emptyMessage = document.getElementById("empty-message");
+
+      // Initialize camera stream
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "environment" } })
+        .then((stream) => {
+          video.srcObject = stream;
+          addLog("Camera stream established successfully.", "system");
+          setInterval(sendFrame, 100); // 10 FPS
+        })
+        .catch((err) => {
+          alert("Camera access error: " + err);
+          addLog("Error: Failed to access the camera.", "bug");
+        });
+
+      // Frame dispatch loop
+      function sendFrame() {
+        if (video.videoWidth === 0) return;
+        canvas.width = 320;
+        canvas.height = 240;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            fetch("/upload_frame", { method: "POST", body: blob }).catch(
+              (err) => console.error("Frame transmission error:", err),
+            );
+          },
+          "image/jpeg",
+          0.6,
+        );
+      }
+
+      // Append logs natively to the dashboard container
+      function addLog(message, type = "normal") {
+        if (emptyMessage) emptyMessage.remove();
+
+        const entry = document.createElement("div");
+        entry.classList.add("log-entry", type);
+
+        const now = new Date();
+        const timeStr =
+          now.toTimeString().split(" ")[0] +
+          "." +
+          String(now.getMilliseconds()).padStart(3, "0");
+
+        entry.innerHTML = `<span class="timestamp">[${timeStr}]</span>${message}`;
+        logsBox.appendChild(entry);
+
+        // Dynamic scroll behavior to match ongoing logs
+        logsBox.scrollTop = logsBox.scrollHeight;
+      }
+
+      // Status polling routine
+      setInterval(() => {
+        fetch("/status")
+          .then((response) => response.text())
+          .then((status) => {
+            statusBadge.textContent = status;
+
+            // Evaluates and triggers logs conditionally
+            if (status.trim().toLowerCase() === "bug detected") {
+              addLog("Bug Detected!", "bug");
+            }
+          })
+          .catch((err) => {
+            console.error("Error fetching status:", err);
+            statusBadge.textContent = "Connection Error";
+            statusBadge.style.color = "var(--accent-alert)";
+          });
+      }, 1000);
+    </script>
+  </body>
+</html>
