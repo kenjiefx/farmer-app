@@ -1,0 +1,7 @@
+flask
+opencv-python
+ultralytics
+onnx
+onnxruntime
+pywebview
+pyinstaller
